@@ -1,0 +1,6 @@
+Their country of origin is {{ country }}
+They originate from {{ country }}
+They are from {{ country }}
+Coming from {{ country }}
+Hailing from {{ country }}
+Metal from {{ country }}
