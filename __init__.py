@@ -18,6 +18,7 @@
 from adapt.intent import IntentBuilder
 from mycroft.skills.core import MycroftSkill
 from mycroft.util.log import getLogger
+from mycroft.messagebus.message import Message
 import requests
 from lxml import html
 import bs4
@@ -25,6 +26,17 @@ import bs4
 __author__ = 'jarbas'
 
 logger = getLogger(__name__)
+
+
+class FbPost():
+    def __init__(self, emitter):
+        self.emitter = emitter
+
+    def post_text(self, text, id="me", speech= "Making a post on face book", link= None):
+        self.emitter.emit(Message("fb_post_request", {"type":"text", "id":id, "link":link, "text":text, "speech":speech}))
+
+    def post_link(self, link,  text="", id="me", speech= "Sharing a link on face book"):
+        self.emitter.emit(Message("fb_post_request", {"type":"link", "id":id, "link":link, "text":text, "speech":speech}))
 
 
 class MetalSkill(MycroftSkill):
@@ -48,6 +60,23 @@ class MetalSkill(MycroftSkill):
             .require("MetalRecomendKeyword").build()
         self.register_intent(suggest_intent,
                              self.handle_suggest_intent)
+
+        fb_suggest_intent = IntentBuilder("FbSuggestMetalIntent") \
+            .require("fbMetalRecomendKeyword").build()
+        self.register_intent(fb_suggest_intent,
+                             self.handle_fb_suggest_intent)
+
+        self.poster = FbPost(self.emitter)
+
+    def handle_fb_suggest_intent(self, message):
+        self.get_band()
+        text = "Jarbas metal band recommendation service:\n"
+        text += "Band: " + self.Name
+        text += "Country: " + self.Country
+        text += "Genre: " + self.Style
+        text += "Status: " + self.Status
+        text += "Theme: ", self.Theme
+        self.poster.post_text(text=text, speech="Recommending a band on face book")
 
     def handle_suggest_intent(self, message):
 
