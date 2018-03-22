@@ -17,6 +17,7 @@
 
 from adapt.intent import IntentBuilder
 from mycroft.skills.core import MycroftSkill, intent_handler
+from mycroft.util.log import LOG
 try:
     from pymetal import MetalArchives
 except ImportError:
@@ -37,9 +38,10 @@ class MetalSkill(MycroftSkill):
         self.last_band = ""
 
     def speak_band_data(self, band):
+        LOG.info(band)
         self.speak_dialog("origin", {"country": band["country"]})
         self.speak_dialog("styledialog", {"style": band["style"]})
-        if band["status"] != "active":
+        if band["active"].lower() != "active":
             self.speak_dialog("splitup")
         else:
             self.speak_dialog("active", {"date": band["date"]})
@@ -55,7 +57,8 @@ class MetalSkill(MycroftSkill):
     @intent_handler(IntentBuilder("SearchMetalBandIntent")
                     .require("MetalArchives")
                     .require("search")
-                    .optionally("MetalGenreKeyword"))
+                    .optionally("MetalGenreKeyword")
+                    .optionally("for"))
     def handle_search_intent(self, message):
         band_name = message.data.get("MetalBandNameKeyword",
                                      message.utterance_remainder())
@@ -69,7 +72,8 @@ class MetalSkill(MycroftSkill):
             self.speak_band_data(band)
             self.set_context("search_next_band")
             self.set_context("MetalGenreKeyword", band_genre)
-            break
+            return
+        self.speak_dialog("not.found", {"band": band_name})
 
     @intent_handler(IntentBuilder("SearchNextMetalBandIntent")
                     .require("next")
