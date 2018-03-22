@@ -40,7 +40,7 @@ class MetalSkill(MycroftSkill):
     def speak_band_data(self, band):
         LOG.info(band)
         self.speak_dialog("origin", {"country": band["country"]})
-        self.speak_dialog("styledialog", {"style": band["style"]})
+        self.speak_dialog("styledialog", {"style": band["genre"]})
         if band["active"].lower() != "active":
             self.speak_dialog("splitup")
         else:
