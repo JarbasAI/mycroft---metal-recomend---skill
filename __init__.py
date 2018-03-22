@@ -81,7 +81,8 @@ class MetalSkill(MycroftSkill):
                     .require("next")
                     .require("search_next_band")
                     .optionally("MetalGenreKeyword")
-                    .optionally("search"))
+                    .optionally("search")
+                    .optionally("for"))
     def handle_search_next_intent(self, message):
         message.data["index"] = self.band_index + 1
         message.data["MetalBandNameKeyword"] = self.last_band
