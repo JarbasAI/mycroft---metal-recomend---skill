@@ -16,119 +16,70 @@
 # along with Mycroft Core.  If not, see <http://www.gnu.org/licenses/>.
 
 from adapt.intent import IntentBuilder
-from mycroft.skills.core import MycroftSkill
-from mycroft.util.log import getLogger
-from mycroft.messagebus.message import Message
-import requests
-from lxml import html
-import bs4
+from mycroft.skills.core import MycroftSkill, intent_handler
+try:
+    from pymetal import MetalArchives
+except ImportError:
+    import sys
+    from os.path import dirname
+    sys.path.append(dirname(__file__))
+    from pymetal import MetalArchives
 
 __author__ = 'jarbas'
-
-logger = getLogger(__name__)
-
-
-class FbPost():
-    def __init__(self, emitter):
-        self.emitter = emitter
-
-    def post_text(self, text, id="me", speech= "Making a post on face book", link= None):
-        self.emitter.emit(Message("fb_post_request", {"type":"text", "id":id, "link":link, "text":text, "speech":speech}))
-
-    def post_link(self, link,  text="", id="me", speech= "Sharing a link on face book"):
-        self.emitter.emit(Message("fb_post_request", {"type":"link", "id":id, "link":link, "text":text, "speech":speech}))
 
 
 class MetalSkill(MycroftSkill):
 
     def __init__(self):
         super(MetalSkill, self).__init__(name="MetalSkill")
-        self.Name = ""
-        self.Style = "Metal"
-        self.Theme = ""
-        self.Label = ""
-        self.Country = ""
-        self.Location = ""
-        self.Status = ""
-        self.Date = ""
-        self.Years = ""
-        self.link = "http://www.metal-archives.com/band/random"
+        self.archives = MetalArchives()
+        self.band_index = 0
+        self.last_band = ""
 
-    def initialize(self):
-
-        suggest_intent = IntentBuilder("SuggestMetalIntent") \
-            .require("MetalRecomendKeyword").build()
-        self.register_intent(suggest_intent,
-                             self.handle_suggest_intent)
-
-        fb_suggest_intent = IntentBuilder("FbSuggestMetalIntent") \
-            .require("fbMetalRecomendKeyword").build()
-        self.register_intent(fb_suggest_intent,
-                             self.handle_fb_suggest_intent)
-
-        self.poster = FbPost(self.emitter)
-
-    def handle_fb_suggest_intent(self, message):
-        self.get_band()
-        text = "Jarbas metal band recommendation service:\n"
-        text += "Band: " + self.Name
-        text += "Country: " + self.Country
-        text += "Genre: " + self.Style
-        text += "Status: " + self.Status
-        text += "Theme: ", self.Theme
-        self.poster.post_text(text=text, speech="Recommending a band on face book")
-
-    def handle_suggest_intent(self, message):
-
-        self.get_band()
-        #"Tell name"
-        self.speak_dialog("metal_recommend", {"band":self.Name})
-        self.speak_dialog("origin", {"country":self.Country})
-        #tell style
-        self.speak_dialog("styledialog", {"style":self.Style})
-        #tell band status
-        if self.Status != "active":
+    def speak_band_data(self, band):
+        self.speak_dialog("origin", {"country": band["country"]})
+        self.speak_dialog("styledialog", {"style": band["style"]})
+        if band["status"] != "active":
             self.speak_dialog("splitup")
         else:
-            #how long been playing
-            self.speak_dialog("active", {"date":self.Date})
+            self.speak_dialog("active", {"date": band["date"]})
 
-        self.add_result("Band_Name",self.Name)
-        self.add_result("Band_Style",self.Style)
-        self.add_result("Band_Theme", self.Theme)
-        self.add_result("Band_Label", self.Label)
-        self.add_result("Band_Country", self.Country)
-        self.add_result("Band_Location", self.Location)
-        self.add_result("Band_Status", self.Status)
-        self.add_result("Band_Formation_Date", self.Date)
-        self.add_result("Band_Active_Years", self.Years)
-        self.emit_results()
+    @intent_handler(IntentBuilder("RandomMetalBandIntent")
+                    .require("MetalKeyword")
+                    .require("RandomKeyword"))
+    def handle_suggest_intent(self, message):
+        band = self.archives.random_band()
+        self.speak_dialog("metal_recommend", {"band": band["name"]})
+        self.speak_band_data(band)
 
-    def get_band(self):
-        sucess = False
-        while not sucess:
-            try:
-                response = requests.get('http://www.metal-archives.com/band/random')
-                tree = html.fromstring(response.content)
-                soup = bs4.BeautifulSoup(response.text, "lxml")
+    @intent_handler(IntentBuilder("SearchMetalBandIntent")
+                    .require("MetalArchives")
+                    .require("search")
+                    .optionally("MetalGenreKeyword"))
+    def handle_search_intent(self, message):
+        band_name = message.data.get("MetalBandNameKeyword",
+                                     message.utterance_remainder())
+        self.last_band = band_name
+        band_genre = message.data.get("MetalGenreKeyword", "")
+        self.band_index = int(message.data.get("index", 0))
+        for band in self.archives.search_band(band_name=band_name,
+                                              genre=band_genre,
+                                              index=self.band_index):
+            self.speak(band["name"])
+            self.speak_band_data(band)
+            self.set_context("search_next_band")
+            self.set_context("MetalGenreKeyword", band_genre)
+            break
 
-                self.Name = soup.select('h1 a[href^=http://www.metal-archives.com]')[0].get_text()
-                self.link = soup.select('h1 a[href^=http://www.metal-archives.com]')[0].attrs.get('href')
-                self.Style = tree.xpath(".//*[@id='band_stats']/dl[2]/dd[1]/text()")[0]
-                self.Theme = tree.xpath(".//*[@id='band_stats']/dl[2]/dd[2]/text()")[0]
-                self.Label = tree.xpath(".//*[@id='band_stats']/dl[2]/dd[3]/text()")[0]
-                self.Country = tree.xpath(".//*[@id='band_stats']/dl[1]/dd[1]/a/text()")[0]
-                self.Location = tree.xpath(".//*[@id='band_stats']/dl[1]/dd[2]/text()")[0]
-                self.Status = tree.xpath(".//*[@id='band_stats']/dl[1]/dd[3]/text()")[0]
-                self.Date = tree.xpath(".//*[@id='band_stats']/dl[1]/dd[4]/text()")[0]
-                years_active = tree.xpath(".//*[@id='band_stats']/dl[3]/dd/text()")[0]
-                self.Years = years_active.strip()
-                sucess = True
-            except:
-                pass
-
-    def stop(self):
-        pass
+    @intent_handler(IntentBuilder("SearchNextMetalBandIntent")
+                    .require("next")
+                    .require("search_next_band")
+                    .optionally("MetalGenreKeyword")
+                    .optionally("search"))
+    def handle_search_next_intent(self, message):
+        message.data["index"] = self.band_index + 1
+        message.data["MetalBandNameKeyword"] = self.last_band
+        self.handle_search_intent(message)
 
 
 def create_skill():
