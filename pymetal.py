@@ -84,7 +84,7 @@ class MetalArchives(object):
             if album_type in excluded_album_types:
                 continue
             data = {"album_url": song[0][
-                                 song[0].find('href="') + 5:song[0].find(
+                                 song[0].find('href="') + 6:song[0].find(
                                      '" title=')],
                     "band_name": song[0][
                                  song[0].find('>') + 1:song[0].find('</a')],
@@ -102,7 +102,7 @@ class MetalArchives(object):
                      json.load(urlopen(url))["iTotalRecords"]
         for band in bands:
             data = {
-                "url": band[0][band[0].find('href="') + 5:band[0].find('">')],
+                "url": band[0][band[0].find('href="') + 6:band[0].find('">')],
                 "name": band[0][band[0].find('">') + 2:band[0].find('</a>')],
                 "genre": band[1],
                 "country": band[2]}
