@@ -33,7 +33,7 @@ class MetalArchives(object):
             tree.xpath('//*[@id="band_info"]/h1/a/text()')
         result["url"] = \
             tree.xpath('//*[@id="band_info"]/h1/a/@href')
-        result["style"] = \
+        result["genre"] = \
             tree.xpath(".//*[@id='band_stats']/dl[2]/dd[1]/text()")
         result["theme"] = \
             tree.xpath(".//*[@id='band_stats']/dl[2]/dd[2]/text()")

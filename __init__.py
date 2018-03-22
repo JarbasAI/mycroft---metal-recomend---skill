@@ -68,6 +68,8 @@ class MetalSkill(MycroftSkill):
         for band in self.archives.search_band(band_name=band_name,
                                               genre=band_genre,
                                               index=self.band_index):
+
+            band = self.archives.get_band_data(band["url"])
             self.speak(band["name"])
             self.speak_band_data(band)
             self.set_context("search_next_band")
