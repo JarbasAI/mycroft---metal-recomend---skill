@@ -52,8 +52,11 @@ class MetalSkill(MycroftSkill):
     def handle_suggest_intent(self, message):
         genre = message.data.get("MetalGenreKeyword")
         band = self.archives.random_band(genre)
-        self.speak_dialog("metal_recommend", {"band": band["name"]})
-        self.speak_band_data(band)
+        if genre and not band:
+            self.speak_dialog("not.found", {"band": genre})
+        else:
+            self.speak_dialog("metal_recommend", {"band": band["name"]})
+            self.speak_band_data(band)
 
     @intent_handler(IntentBuilder("SearchMetalBandIntent")
                     .require("MetalArchives")
