@@ -47,10 +47,11 @@ class MetalSkill(MycroftSkill):
             self.speak_dialog("active", {"date": band["date"]})
 
     @intent_handler(IntentBuilder("RandomMetalBandIntent")
-                    .require("MetalKeyword")
+                    .one_of("MetalKeyword", "MetalGenreKeyword")
                     .require("RandomKeyword"))
     def handle_suggest_intent(self, message):
-        band = self.archives.random_band()
+        genre = message.data.get("MetalGenreKeyword")
+        band = self.archives.random_band(genre)
         self.speak_dialog("metal_recommend", {"band": band["name"]})
         self.speak_band_data(band)
 
