@@ -41,7 +41,7 @@ class MetalSkill(MycroftSkill):
         LOG.info(band)
         self.speak_dialog("origin", {"country": band["country"]})
         self.speak_dialog("styledialog", {"style": band["genre"]})
-        if band["active"].lower() != "active":
+        if band["status"].lower() != "active":
             self.speak_dialog("splitup")
         else:
             self.speak_dialog("active", {"date": band["date"]})

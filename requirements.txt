@@ -1,2 +1,2 @@
-python-lxml
-git+https://github.com/JarbasAl/pymetal
+lxml
+pymetal
